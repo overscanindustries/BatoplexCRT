@@ -400,7 +400,11 @@ class PlaybackController:
         self.aspect = "letterbox"            # Aspect of this file (aspect.MODES)
         self.vparams = None                  # mpv video-params of this file
         self.crop = None                     # (w, h, x, y) bars cut by video-crop
-        self.cropjob = None                  # {"state", "at", "tries"} bar detection
+        self.cropjob = None                  # {"state", "at", "tries", "wait"} bar detection
+        # Bars found in this file as (x, y) parts of the frame; (0, 0) when it has none.
+        # Kept for the whole file: a quality change or a new Aspect does not look again.
+        self.bars = None
+        self.moved_at = None                 # when the picture of this load started to move
 
     # ------------------------------------------------------------ inbox
     def _post(self, gen, fn):
@@ -607,6 +611,8 @@ class PlaybackController:
         if name == "property-change":
             p, d = ev.get("name"), ev.get("data")
             if p == "time-pos" and d is not None:
+                if self.moved_at is None and float(d) > 0:
+                    self.moved_at = self.clock()
                 # prev_time: the previous position mpv reported, or None after a local seek
                 if self.tc_seek is not None:
                     return                   # a transcode seek waits: keep its target
@@ -638,7 +644,7 @@ class PlaybackController:
                 self.chapter = d
             elif p == "video-params" and isinstance(d, dict):
                 self.vparams = d
-                self._aspect_apply(s)
+                self._crop_sync(s)                   # a new stream size: the same bars
             elif p == "chapter-list":
                 self.chapter_list = [(float(c.get("time") or 0), c.get("title") or "")
                                      for c in (d or []) if isinstance(c, dict)]
@@ -1068,7 +1074,7 @@ class PlaybackController:
             default = "letterbox"
         self.aspect = aspect.valid(saved or default)
         self._crop_filter_off(m)
-        self.vparams, self.crop, self.cropjob = None, None, None
+        self.vparams, self.crop, self.cropjob, self.moved_at = None, None, None, None
         if s.pi is not None and s.pi.url and m is not None:
             m.set("video-crop", "")
             m.set("panscan", 0.0)
@@ -1082,8 +1088,23 @@ class PlaybackController:
             m.bpx_crop_on = False
 
     def _crop_plan(self):
-        if self.aspect != "letterbox" and self.crop is None and self.cropjob is None:
+        """Look for bars once per file."""
+        if self.aspect != "letterbox" and self.bars is None and self.cropjob is None:
             self.cropjob = {"state": "wait", "at": None, "tries": 0}
+
+    def _crop_sync(self, s):
+        """Cut the known bars for this stream size (not in Letterbox), then fit the picture."""
+        m = s.mpv
+        if m is None:
+            return
+        vp = self.vparams or {}
+        want = None
+        if self.aspect != "letterbox":
+            want = aspect.from_frac(self.bars, int(vp.get("w") or 0), int(vp.get("h") or 0))
+        if want != self.crop:
+            self.crop = want
+            m.set("video-crop", aspect.crop_arg(want))
+        self._aspect_apply(s)
 
     def _aspect_apply(self, s):
         m = s.mpv
@@ -1109,11 +1130,8 @@ class PlaybackController:
         if self.aspect == "letterbox" and s.mpv is not None:
             self._crop_filter_off(s.mpv)
             self.cropjob = None
-            if self.crop:
-                self.crop = None
-                s.mpv.set("video-crop", "")
         self._crop_plan()
-        self._aspect_apply(s)
+        self._crop_sync(s)
 
     def _crop_tick(self, s):
         """Bar detection: wait until the picture moves, add cropdetect, read the box after
@@ -1124,9 +1142,11 @@ class PlaybackController:
         now = self.clock()
         if job["state"] == "wait":
             if job["at"] is None:
-                if self.time_s > 0 and self.pos_fresh:
-                    job["at"] = now + aspect.DETECT_WAIT_S
-                return
+                if not (self.time_s > 0 and self.pos_fresh) or self.moved_at is None:
+                    return
+                # DETECT_WAIT_S after the picture starts to move (no black start frames);
+                # at once for a new Aspect later in the file.
+                job["at"] = max(now, self.moved_at + aspect.DETECT_WAIT_S)
             if now < job["at"]:
                 return
             gen = self.gen
@@ -1154,16 +1174,18 @@ class PlaybackController:
                 c = aspect.crop_from_meta(meta if err == "success" else None,
                                           int(vp.get("w") or 0), int(vp.get("h") or 0))
                 job["tries"] += 1
-                no_box = err != "success" or not isinstance(meta, dict) or aspect.blank(meta)
+                no_box = (err != "success" or not isinstance(meta, dict) or aspect.blank(meta)
+                          or "lavfi.cropdetect.x1" not in meta)
                 if c is None and no_box and job["tries"] < aspect.DETECT_TRIES:
                     job["state"], job["at"] = "wait", self.clock() + aspect.DETECT_RETRY_S
                     return
                 self.cropjob = None
-                if c is not None and self.aspect != "letterbox":
-                    self.crop = c
-                    s.mpv.set("video-crop", aspect.crop_arg(c))
-                    L.info("bars cut: %s", aspect.crop_arg(c))
-                    self._aspect_apply(s)
+                if c is not None:
+                    self.bars = aspect.to_frac(c, int(vp["w"]), int(vp["h"]))
+                    L.info("bars found: %s", aspect.crop_arg(c))
+                elif not no_box:
+                    self.bars = (0.0, 0.0)           # a clear picture with no bars
+                self._crop_sync(s)
             job["state"] = "reading"
             m.cmd("get_property", "vf-metadata/" + aspect.DETECT_LABEL, cb=got)
 
@@ -1496,12 +1518,36 @@ class PlaybackController:
         self.pmenu = {"rows": [("q", lbl) for lbl in labels], "focus": i, "checked": i,
                       "title": "Quality"}
 
+    def _open_aspect(self):
+        """Aspect: Letterbox, 14:9 and Zoom, the current one checked."""
+        i = [k for k, _l in aspect.MODES].index(self.aspect)
+        self.pmenu = {"rows": list(aspect.MODES), "focus": i, "checked": i, "title": "Aspect"}
+
+    def _back_to_pmenu(self, s, key):
+        self._open_pmenu(s)
+        keys = [k for k, _l in self.pmenu["rows"]]
+        self.pmenu["focus"] = keys.index(key) if key in keys else 0
+
+    def _aspect_list_action(self, s, a):
+        p = self.pmenu
+        if a == inputs.BACK:
+            self._back_to_pmenu(s, "aspect")
+        elif a == inputs.MENU:
+            self.pmenu = None
+        elif a in (inputs.QUIT, STOP):
+            self.pmenu = None
+            self._stop(s)
+        elif a in (PLAYPAUSE, PLAY, PAUSE):
+            if a == PLAYPAUSE or self.paused != (a == PAUSE):
+                self._toggle_pause(s, s.mpv)
+        elif a == inputs.OK:
+            self.pmenu = None
+            self.set_aspect(p["rows"][p["focus"]][0])
+
     def _quality_action(self, s, a):
         p = self.pmenu
         if a == inputs.BACK:                  # back to the playback menu, on Quality
-            self._open_pmenu(s)
-            keys = [k for k, _l in self.pmenu["rows"]]
-            self.pmenu["focus"] = keys.index("quality") if "quality" in keys else 0
+            self._back_to_pmenu(s, "quality")
         elif a == inputs.MENU:
             self.pmenu = None
         elif a in (inputs.QUIT, STOP):
@@ -1530,9 +1576,16 @@ class PlaybackController:
             if not rep:
                 self._quality_action(s, a)
             return
+        if p.get("title") == "Aspect":
+            if not rep:
+                self._aspect_list_action(s, a)
+            return
         key = p["rows"][p["focus"]][0]
+        if key == "aspect" and a == inputs.OK and not rep:
+            self._open_aspect()
+            return
         if key in ("aspect", "sleep") and a in (inputs.OK, inputs.LEFT, inputs.RIGHT) and not rep:
-            # Aspect and Sleep Timer change in place: the menu stays open.
+            # Left and right change Aspect and Sleep Timer in place: the menu stays open.
             d = -1 if a == inputs.LEFT else 1
             if key == "aspect":
                 self.set_aspect(aspect.next_mode(self.aspect, d))

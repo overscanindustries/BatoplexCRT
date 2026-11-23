@@ -40,6 +40,21 @@ class TestAspect(unittest.TestCase):
     def test_crop_pillarbox_and_odd(self):
         self.assertEqual(aspect.crop_from_meta(meta(81, 558, 0, 479), 640, 480), (480, 480, 80, 0))
 
+    def test_crop_one_direction_only(self):
+        # A wide film in a 16:9 transcode, in a scene that is dark at the sides.
+        self.assertEqual(aspect.crop_from_meta(meta(31, 681, 52, 352), 718, 404), (718, 304, 0, 50))
+        self.assertEqual(aspect.crop_from_meta(meta(81, 558, 20, 459), 640, 480), (480, 480, 80, 0))
+
+    def test_frac_round_trip(self):
+        f = aspect.to_frac((3840, 1608, 0, 276), 3840, 2160)
+        self.assertEqual(aspect.from_frac(f, 718, 404), (718, 300, 0, 52))   # 51.6 px of bar
+        self.assertIsNone(aspect.from_frac((0.0, 0.0), 718, 404))
+        self.assertIsNone(aspect.from_frac(None, 718, 404))
+        self.assertIsNone(aspect.from_frac(f, 0, 0))
+        for w in (360, 404, 720, 1080):                    # no 2 px lost to float error
+            for cut in range(2, w // 4, 2):
+                self.assertEqual(aspect.from_frac(aspect.to_frac((w, w - 2 * cut, 0, cut), w, w), w, w)[3], cut)
+
     def test_blank_and_bad_meta(self):
         self.assertTrue(aspect.blank(meta(639, 0, 479, 0)))
         self.assertIsNone(aspect.crop_from_meta(meta(639, 0, 479, 0), 640, 480))
