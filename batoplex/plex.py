@@ -1427,6 +1427,9 @@ class PlexProvider:
             "addDebugOverlay": 0, "session": session, "X-Plex-Session-Identifier": session,
             "X-Plex-Client-Identifier": self.client_id, "X-Plex-Product": "Batoplex",
             "X-Plex-Version": VERSION, "X-Plex-Platform": "Linux", "X-Plex-Device": "Batocera",
+            # The server has no profile for this platform and refuses with HTTP 400 unless
+            # the request names one. Generic plus PROFILE_EXTRA gives an h264/aac HLS stream.
+            "X-Plex-Client-Profile-Name": "Generic",
         }
 
     def transcode_headers(self, session):

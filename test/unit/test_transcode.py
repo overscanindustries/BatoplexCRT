@@ -187,7 +187,7 @@ class TestRequest(Base):
             "addDebugOverlay": "0", "session": "SESS", "X-Plex-Session-Identifier": "SESS",
             "X-Plex-Client-Identifier": "cid", "X-Plex-Product": "Batoplex",
             "X-Plex-Version": config.VERSION, "X-Plex-Platform": "Linux",
-            "X-Plex-Device": "Batocera"})
+            "X-Plex-Device": "Batocera", "X-Plex-Client-Profile-Name": "Generic"})
         self.assertEqual(h["X-Plex-Client-Profile-Extra"], plex.PROFILE_EXTRA)
         self.assertEqual(pi.offset_s, 61.0)
         u = urllib.parse.urlparse(pi.url)
