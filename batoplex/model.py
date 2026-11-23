@@ -142,6 +142,7 @@ class PlayInfo:
     session: str = ""                      # the transcode session (= the timeline session)
     reason: str = ""                       # why it transcodes: menu, retry, setting, bandwidth
     notice: str = ""                       # a toast for the start (conversion refused)
+    src_aspect: float = 0.0                # display aspect of the source picture; 0 unknown
     # Music: the Plex loudness as mpv's fallback gain, and the peak limit.
     gain_db: Optional[float] = None        # None: no replaygain-fallback option
     gain_max_db: Optional[float] = None    # the highest gain this file's peak permits

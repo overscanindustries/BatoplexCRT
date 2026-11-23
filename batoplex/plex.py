@@ -361,6 +361,28 @@ PROFILE_EXTRA = ("add-transcode-target(type=videoProfile&context=streaming&proto
                  "&container=mpegts&videoCodec=h264&audioCodec=aac)")
 
 
+def source_aspect(media):
+    """Display aspect of the first video stream: width x pixel aspect / height, else the
+    media's rounded aspectRatio, else 0. A transcode keeps the source's pixel aspect on a
+    picture it already scaled to square pixels (720x480 16:9 comes back 718x404 at
+    853:720), so the player sets this shape itself."""
+    media = media or {}
+    part = (media.get("Part") or [{}])[0]
+    v = next((s for s in part.get("Stream") or [] if s.get("streamType") == 1), None) or {}
+    try:
+        w, h = int(v.get("width") or 0), int(v.get("height") or 0)
+        num, _, den = str(v.get("pixelAspectRatio") or "1:1").partition(":")
+        par = float(num) / float(den or 1)
+        if w > 0 and h > 0 and par > 0:
+            return w * par / h
+    except (TypeError, ValueError, ZeroDivisionError):
+        pass
+    try:
+        return max(0.0, float(media.get("aspectRatio") or 0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _host_kind(uri):
     """local or remote from the host alone: a private address, or a plex.direct name that
     spells one (192-168-1-5.<hash>.plex.direct)."""
@@ -1342,6 +1364,7 @@ class PlexProvider:
             pi.start_s = max(0.0, float(opts["at_s"]))
         pi.conn = conn_kind(self.base)
         pi.src_kbps = int((media or {}).get("bitrate") or 0)   # rule 6 never steps above it
+        pi.src_aspect = source_aspect(media)
         q, reason = self.transcode_choice(media, part_key=pi.url[len(self.base):], opts=opts)
         if q is None:
             return pi, full

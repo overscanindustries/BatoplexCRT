@@ -515,6 +515,11 @@ class PlaybackController:
         self.duration_s = pi.duration_ms / 1000.0
         if pi.headers:
             m.set("http-header-fields", ",".join("%s: %s" % kv for kv in pi.headers.items()))
+        # A transcode keeps the source's pixel aspect on a picture it scaled to square
+        # pixels: give mpv the source shape. Direct play: the file's own (-1). Set on every
+        # load, because the option stays on the mpv for the next file.
+        tc_aspect = pi.mode == "transcode" and getattr(pi, "src_aspect", 0) > 0
+        m.set("video-aspect-override", "%.6f" % pi.src_aspect if tc_aspect else "-1")
         if pi.mode == "transcode":
             # The stream starts at offset_s; mpv counts from 0.
             s.base_s = pi.offset_s
