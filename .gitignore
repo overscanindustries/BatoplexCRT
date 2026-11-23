@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Build output
+/dist/
+
+# Test output and generated media (tools/make-test-media.sh)
+/test/out/
+/test/home-*/
+/test/media/*.mkv
+/test/media/*.flac
+/test/media/hls/
+
+# Local only
+/libpython*.so*
+.DS_Store
+
+# Visualizer build (native/build.sh)
+/native/bpx-milkdrop
+/native/bpx-milkdrop.tmp
+/native/.cache/
+/native/bpx-milkdrop-headless
+/native/bpx-milkdrop-headless.tmp

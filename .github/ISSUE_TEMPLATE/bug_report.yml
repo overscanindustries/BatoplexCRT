@@ -1,0 +1,49 @@
+name: Bug report
+description: Something does not work or looks wrong.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Batoplex version
+      description: In `/userdata/system/batoplex/VERSION`.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: batocera
+    attributes:
+      label: Batocera version
+      placeholder: 43.1 x86_64
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: GPU, video output, and TV
+      placeholder: Radeon R9 380X, DVI-I analog at 641x480i, 14" CRT over component
+  - type: input
+    id: controller
+    attributes:
+      label: Controller
+      placeholder: Xbox One pad (USB)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Attach `/userdata/system/batoplex/data/batoplex.log` and `launcher.log`.
+        Tokens are redacted, but read the files before you post them.
+        For install problems, attach the output of `probe.sh` (see docs/install.md).
+  - type: textarea
+    id: photo
+    attributes:
+      label: Photo or screenshot
+      description: For display problems, a photo of the TV helps the most.

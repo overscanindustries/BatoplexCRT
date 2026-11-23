@@ -1,0 +1,55 @@
+name: Hardware report
+description: Tell us about a setup that works (or does not). Reports fill the tested hardware table.
+labels: [hardware]
+body:
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Works
+        - Works with changes (describe below)
+        - Does not work
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Batoplex version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: batocera
+    attributes:
+      label: Batocera version
+      placeholder: 43.1 x86_64
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver
+      placeholder: Radeon R9 380X (amdgpu)
+    validations:
+      required: true
+  - type: input
+    id: output
+    attributes:
+      label: Video output and mode
+      description: Connector, mode, and any adapter or transcoder.
+      placeholder: DVI-I analog, 641x480 interlaced, VGA-to-component transcoder
+    validations:
+      required: true
+  - type: input
+    id: tv
+    attributes:
+      label: TV
+      placeholder: 14" 4:3 CRT, component input
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Settings you changed (`mpv_extra`, margins, flicker filter), playback issues, or anything else.

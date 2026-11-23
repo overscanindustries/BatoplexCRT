@@ -1,0 +1,22 @@
+Source: github.com/projectM-visualizer/presets-cream-of-the-crop (main). Licence: see LICENSE.md there (presets 'assumed to be in the public domain', no formal licence).
+Screened headless on the box: test tone, 3 s each, mean-luma change < 0.10 per frame, no texture files needed. Screened again with real music (20 s each), 2026-11-20; one dark preset removed.
+
+001  Hypnotic/Polar Warp/flexi - grind my glitch up [199].milk
+003  Hypnotic/Polar Warp/flexi - grind my glitch up [229].milk
+007  Reaction/Liquid Simmering/suksma - clouded      qathed start.milk
+015  Reaction/Cloudy/ORB - Ethereal Plain.milk
+016  Reaction/Mountains/cope + geiss + stahlregen - cartune (bending gelatine mix).milk
+017  Reaction/Mountains/cope - the drain to heaven.milk
+021  Reaction/Liquid Gradient/beta106i - Airhandler (Last Breath - Justice).milk
+033  Fractal/Trees/shifter - ice ripples.milk
+034  Fractal/Womb/amandio c - new life.milk
+035  Fractal/Womb/amandio c - new life a.milk
+041  Geometric/Cathedral/martin - underwater cathedral-2.milk
+043  Geometric/Tunnel Morph/EVET - Broken Records.milk
+045  Geometric/Tunnel Morph/fishbrain and flexi - box of tricks 18 [moebius transformation + polar transformation = bipolar transformation] --- Isosceles edit.milk
+052  Geometric/Honeycomb/yin - 362 - Organic circuits (beat zoom).milk
+054  Geometric/Honeycomb/yin - 360 - Organic circuits.milk
+055  Geometric/Sphere Array/amandio c - typhoon season (inside).milk
+057  Geometric/Sphere Array/amandio c - moving ripple - [3-word name].milk   -> amandio c - moving ripple - symmetry.milk
+064  Drawing/Whirlpools/suksma - fiShbRaiN - witchcraft (phugly shame on remix) - darning kneedless - satanopize roam3 nz+.milk   -> suksma - fiShbRaiN - witchcraft.milk
+074  Fractal/Lattice/va ultramix - 65.milk
