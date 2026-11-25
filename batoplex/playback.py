@@ -538,7 +538,8 @@ class PlaybackController:
         m.set("pause", False)                # keep-open pauses at the end of the last file
         m.set("aid", "auto")                 # aid is also an option: never carry it over
         self._aspect_reset(s, m)
-        self._set_video_box(m, self._video_box())
+        if not self.shrunk:                  # a restart under Up Next keeps the small box
+            self._set_video_box(m, self._video_box())
         m.cmd("loadfile", pi.url, "replace")
         L.info("play %s (%s) start=%.0fs %s%s", s.item.title, s.item.id, pi.start_s, pi.mode,
                " %s (%s)" % (pi.quality, pi.reason) if pi.mode == "transcode" else "")

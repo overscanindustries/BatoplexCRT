@@ -61,7 +61,7 @@ Weather asks plex.tv for your approximate location (Automatic) and gets the fore
 Press Menu during playback:
 
 - **Display Mode:** Letterbox, 14:9 or Zoom for wide video, kept for each show or movie.
-  14:9 and Zoom also cut black bars that are part of the file. 4:3 video always shows whole.
+  14:9 and Zoom also cut black bars that are part of the file. In Letterbox, 4:3 video always shows whole.
 - **Quality:** for this video only. With Automatic, Batoplex lowers the quality if a remote
   video keeps buffering.
 - **Sleep Timer:** 15 to 90 minutes, or the end of the episode, video or track. The Now

@@ -44,6 +44,11 @@ class TestAspect(unittest.TestCase):
     def test_crop_letterboxed_4x3(self):
         self.assertEqual(aspect.crop_from_meta(meta(0, 639, 60, 419), 640, 480), (640, 360, 0, 60))
 
+    def test_crop_windowbox_keeps_side_bars(self):
+        # 30 px side bars and 24 px top and bottom: the thin top cut is dropped, the sides stay.
+        self.assertEqual(aspect.crop_from_meta(meta(30, 689, 24, 455), 720, 480, 4 / 3),
+                         (660, 480, 30, 0))
+
     def test_crop_needs_even_bars(self):
         self.assertIsNone(aspect.crop_from_meta(meta(0, 639, 0, 419), 640, 480))   # bottom only
         self.assertIsNone(aspect.crop_from_meta(meta(0, 639, 3, 476), 640, 480))   # too thin

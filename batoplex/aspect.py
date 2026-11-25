@@ -69,6 +69,10 @@ def crop_from_meta(meta, w, h, dar=0.0):
     cut_x = min(left, right) if abs(left - right) <= tol_x else 0
     cut_y = cut_y if 2 * cut_y >= 0.03 * h else 0
     cut_x = cut_x if 2 * cut_x >= 0.03 * w else 0
+    # Thin lines at the top and bottom of a 4:3 capture are not bars: cutting them makes
+    # the picture narrower than a wide film.
+    if cut_y and dar and dar * h / float(h - 2 * (cut_y - cut_y % 2)) < WIDE_MIN:
+        cut_y = 0
     # One direction only: a dark scene can look like bars at the sides of a wide film.
     # Keep the larger bars (as a part of the frame); the other side stays whole.
     if cut_y and cut_x:
@@ -77,8 +81,6 @@ def crop_from_meta(meta, w, h, dar=0.0):
         else:
             cut_y = 0
     cut_y, cut_x = cut_y - cut_y % 2, cut_x - cut_x % 2
-    if cut_y and dar and dar * h / float(h - 2 * cut_y) < WIDE_MIN:
-        cut_y = 0
     if not cut_y and not cut_x:
         return None
     cw, ch = w - 2 * cut_x, h - 2 * cut_y
