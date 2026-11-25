@@ -538,6 +538,7 @@ class PlaybackController:
         m.set("pause", False)                # keep-open pauses at the end of the last file
         m.set("aid", "auto")                 # aid is also an option: never carry it over
         self._aspect_reset(s, m)
+        self._set_video_box(m, self._video_box())
         m.cmd("loadfile", pi.url, "replace")
         L.info("play %s (%s) start=%.0fs %s%s", s.item.title, s.item.id, pi.start_s, pi.mode,
                " %s (%s)" % (pi.quality, pi.reason) if pi.mode == "transcode" else "")
@@ -1050,10 +1051,39 @@ class PlaybackController:
             r = {"left": x / 641.0, "top": y / 480.0,
                  "right": 1 - (x + w) / 641.0, "bottom": 1 - (y + h) / 480.0}
         else:
-            r = {"left": 0, "top": 0, "right": 0, "bottom": 0}
-        for k, v in r.items():
-            s.mpv.set("video-margin-ratio-" + k, round(v, 4))
+            r = self._video_box()
+        self._set_video_box(s.mpv, r)
         self._aspect_apply(s)                # all of the picture in the small box
+
+    def _video_box(self):
+        """The video area as mpv margin ratios: inside the Screen Margins once the user set
+        them (the part of the tube that shows), else the whole screen."""
+        if not self._margins_on():
+            return {"left": 0, "top": 0, "right": 0, "bottom": 0}
+        safe = self.settings["safe"]
+        # The calibration brackets end at x = 640 - right, so the area is 640 - l - r wide.
+        return {"left": safe["left"] / 641.0, "top": safe["top"] / 480.0,
+                "right": (safe["right"] + 1) / 641.0, "bottom": safe["bottom"] / 480.0}
+
+    def _margins_on(self):
+        try:
+            return bool(self.settings["video_margins"])
+        except KeyError:
+            return False
+
+    @staticmethod
+    def _set_video_box(m, r):
+        for k, v in r.items():
+            m.set("video-margin-ratio-" + k, round(v, 4))
+
+    def _area_aspect(self):
+        """Width / height of the video area (square pixels on the 4:3 tube)."""
+        if not self._margins_on():
+            return aspect.SCREEN
+        safe = self.settings["safe"]
+        w = 640.0 - safe["left"] - safe["right"]
+        h = 480.0 - safe["top"] - safe["bottom"]
+        return w / h if w > 0 and h > 0 else aspect.SCREEN
 
     # ------------------------------------------------------------ aspect
     def _aspect_key(self, s):
@@ -1115,7 +1145,7 @@ class PlaybackController:
         if a and self.crop and vp.get("w") and vp.get("h"):
             cw, ch, _x, _y = self.crop
             a = a * (cw / float(vp["w"])) / (ch / float(vp["h"]))
-        ps = 0.0 if self.shrunk else aspect.panscan(self.aspect, a)
+        ps = 0.0 if self.shrunk else aspect.panscan(self.aspect, a, self._area_aspect())
         m.set("panscan", ps)
 
     def set_aspect(self, mode):

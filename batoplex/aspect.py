@@ -26,13 +26,19 @@ def valid(mode):
 
 
 def panscan(mode, aspect, screen=SCREEN):
-    """mpv panscan (0 letterbox, 1 fill the height) for a picture of display aspect `aspect`
-    in a video area of aspect `screen`. mpv grows the picture linearly between the two sizes."""
+    """mpv panscan (0 whole picture, 1 fill the area) for a picture of display aspect
+    `aspect` in a video area of aspect `screen`. mpv grows the picture linearly between the
+    two sizes. Zoom also fills an area wider than the picture (a 4:3 show in wide margins);
+    14:9 is for wide pictures only."""
     mode = valid(mode)
-    if mode == "letterbox" or not aspect or aspect <= screen * NARROW_TOL:
+    if mode == "letterbox" or not aspect or not screen:
         return 0.0
+    if 1 / NARROW_TOL <= aspect / screen <= NARROW_TOL:
+        return 0.0                           # the area's own shape
     if mode == "zoom":
         return 1.0
+    if aspect < screen:
+        return 0.0
     h0 = screen / aspect                     # letterbox height, as a part of the area height
     target = screen / (14 / 9)               # the height that shows a 14:9 part of the picture
     if target <= h0:

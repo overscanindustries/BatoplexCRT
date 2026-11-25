@@ -224,5 +224,24 @@ class TestPanelReturn(unittest.TestCase):
         app.quit.assert_not_called()
 
 
+
+class TestCalibrateVideo(unittest.TestCase):
+    def test_a_moved_edge_turns_video_margins_on_and_reset_off(self):
+        app = fake_app()
+        app.saved = lambda r: None
+        app.pop = lambda: None
+        scr = system.CalibrateScreen(app)
+        scr.handle(inputs.BACK)                           # open and leave: no measurement
+        self.assertFalse(app.settings["video_margins"])
+        app.settings["safe"] = dict(app.settings["safe"], left=16)
+        scr.handle(inputs.LEFT)                           # at the limit: nothing moves
+        self.assertFalse(app.settings["video_margins"])
+        scr.handle(inputs.RIGHT)
+        self.assertEqual(app.settings["safe"]["left"], 20)
+        self.assertTrue(app.settings["video_margins"])
+        scr.reset()
+        self.assertFalse(app.settings["video_margins"])
+
+
 if __name__ == "__main__":
     unittest.main()

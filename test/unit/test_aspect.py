@@ -30,6 +30,9 @@ class TestAspect(unittest.TestCase):
                 self.assertEqual(aspect.panscan(mode, a), 0.0, (mode, a))
         self.assertEqual(aspect.panscan("zoom", 1.43), 1.0)
         self.assertEqual(aspect.panscan("zoom", 4 / 3, screen=1.2), 1.0)   # a narrow area
+        self.assertEqual(aspect.panscan("zoom", 4 / 3, screen=1.48), 1.0)  # a wide area
+        self.assertEqual(aspect.panscan("14:9", 4 / 3, screen=1.48), 0.0)
+        self.assertEqual(aspect.panscan("zoom", 1.43, screen=1.48), 0.0)   # near its shape
 
     def test_thin_top_and_bottom_lines_are_not_bars(self):
         self.assertIsNone(aspect.crop_from_meta(meta(0, 719, 12, 467), 720, 480, 4 / 3))

@@ -145,6 +145,9 @@ DEFAULTS = {
     # Aspect of a picture wider than 4:3, per device: letterbox | 14:9 | zoom.
     # The Playback menu keeps a choice for each show or movie; this is the default.
     "aspect": "letterbox",
+    # Video inside the Screen Margins: on when the user moves an edge, off on Reset. The
+    # default margins are a guess for the menus, not a measurement of the set.
+    "video_margins": False,
     # Night Audio, per device: quiet sounds up, loud sounds down, dialogue up.
     "night_audio": False,
     # Theme, per profile: stock | ribbon | midnight | hearth | console.

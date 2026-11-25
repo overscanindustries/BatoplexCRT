@@ -176,7 +176,7 @@ class TestGrid(unittest.TestCase):
         """Pitch and lift are multiples of 4 at every calibration step."""
         for music in (False, True):
             for side in range(16, 73, 4):
-                for top in range(16, 57, 4):
+                for top in range(16, 73, 4):
                     scr, g = make()
                     g.L = views.MUSIC if music else views.VIDEO
                     scr.safe = dict(scr.safe, left=side, right=side, top=top)
