@@ -8,6 +8,10 @@ mpv's cropdetect filter runs for a short time over IPC, then video-crop cuts the
 MODES = [("letterbox", "Letterbox"), ("14:9", "14:9"), ("zoom", "Zoom")]
 LABEL = dict(MODES)
 SCREEN = 4 / 3
+# A picture up to 5% wider than the screen counts as the screen's shape: 4:3 SD with the
+# 10:11 pixel shape (1.364) or a 1.37 film frame is not wide video.
+NARROW_TOL = 1.05
+WIDE_MIN = 1.5              # a cut at top and bottom must leave a wide film, not 4:3 video
 
 DETECT_FILTER = "@bpxcrop:lavfi=[cropdetect=limit=24/255:round=2:reset=0]"
 DETECT_LABEL = "bpxcrop"
@@ -21,30 +25,27 @@ def valid(mode):
     return mode if mode in LABEL else "letterbox"
 
 
-def next_mode(mode, d=1):
-    keys = [k for k, _ in MODES]
-    return keys[(keys.index(valid(mode)) + d) % len(keys)]
-
-
-def panscan(mode, aspect):
+def panscan(mode, aspect, screen=SCREEN):
     """mpv panscan (0 letterbox, 1 fill the height) for a picture of display aspect `aspect`
-    on the 4:3 screen. mpv grows the picture linearly between the two sizes."""
+    in a video area of aspect `screen`. mpv grows the picture linearly between the two sizes."""
     mode = valid(mode)
-    if mode == "letterbox" or not aspect or aspect <= SCREEN + 0.01:
+    if mode == "letterbox" or not aspect or aspect <= screen * NARROW_TOL:
         return 0.0
     if mode == "zoom":
         return 1.0
-    h0 = SCREEN / aspect                     # letterbox height, as a part of the screen height
-    target = SCREEN / (14 / 9)               # the height that shows a 14:9 part of the picture
+    h0 = screen / aspect                     # letterbox height, as a part of the area height
+    target = screen / (14 / 9)               # the height that shows a 14:9 part of the picture
     if target <= h0:
         return 0.0                           # narrower than 14:9 already
     return round(min(1.0, (target - h0) / (1.0 - h0)), 4)
 
 
-def crop_from_meta(meta, w, h):
-    """(cw, ch, cx, cy) from cropdetect metadata for a w x h frame, or None when there are
-    no clear bars. Only bars of the same size on both sides count (a dark corner is not a
-    bar), and only when they take 3% or more of the frame; never more than half the frame."""
+def crop_from_meta(meta, w, h, dar=0.0):
+    """(cw, ch, cx, cy) from cropdetect metadata for a w x h frame of display aspect `dar`,
+    or None when there are no clear bars. Only bars of the same size on both sides count (a
+    dark corner is not a bar), and only when they take 3% or more of the frame; never more
+    than half the frame. Bars at top and bottom count only when the picture left is
+    WIDE_MIN or wider: thin black lines on a 4:3 capture are not a letterbox."""
     if not meta or not w or not h:
         return None
     try:
@@ -70,6 +71,8 @@ def crop_from_meta(meta, w, h):
         else:
             cut_y = 0
     cut_y, cut_x = cut_y - cut_y % 2, cut_x - cut_x % 2
+    if cut_y and dar and dar * h / float(h - 2 * cut_y) < WIDE_MIN:
+        cut_y = 0
     if not cut_y and not cut_x:
         return None
     cw, ch = w - 2 * cut_x, h - 2 * cut_y

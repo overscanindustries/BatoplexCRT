@@ -188,7 +188,7 @@ HELP = {
     "cat:experience": "Theme music and automatic sign-in",
     "cat:appearance": "Theme, contrast and screen saver",
     "cat:player": "Intros, credits and what plays next",
-    "cat:video": "Quality, aspect and night audio",
+    "cat:video": "Quality, display mode and night audio",
     "cat:tvsetup": "Fit and tune the picture on this TV",
     "cat:account": "Your Plex server and account",
     "exit": "Close Batoplex",
@@ -257,7 +257,7 @@ def page_rows(app, cat, boot_ok=False, boot_on=False):
         out.append(ch("rewind_on_resume_s", "Rewind on Resume"))
     elif cat == "video":
         out += [ch("quality_home", "Home Streaming"), ch("quality_remote", "Remote Streaming")]
-        out += [ch("aspect", "Aspect"), ch("night_audio", "Night Audio")]
+        out += [ch("aspect", "Display Mode"), ch("night_audio", "Night Audio")]
     elif cat == "tvsetup":
         out += [("action", "margins", "Screen Margins", draw.CHEVRON),
                 ("action", "patterns", "Test Patterns", draw.CHEVRON),

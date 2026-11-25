@@ -10,8 +10,8 @@ settings, and the focused row shows a line of help at the bottom. B goes back.
 - **Appearance:** Theme, High Contrast, Menu Sounds, Screen Saver.
 - **Player Experience:** Skip Intro and Credits, Auto Play, Up Next and its countdown time,
   Passout Protection, Rewind on Resume.
-- **Video & Audio:** quality for home and remote servers, the default Aspect, Night Audio
-  (quiet sounds up, loud sounds down, for video).
+- **Video & Audio:** quality for home and remote servers, the default Display Mode,
+  Night Audio (quiet sounds up, loud sounds down, for video).
 - **TV Setup:** Screen Margins, Test Patterns, Flicker Filter, Start on Boot.
 - **Account:** your server, other servers, Switch User, Sign Out.
 
@@ -60,8 +60,8 @@ Weather asks plex.tv for your approximate location (Automatic) and gets the fore
 
 Press Menu during playback:
 
-- **Aspect:** Letterbox, 14:9 or Zoom, kept for each show or movie. 14:9 and Zoom also cut
-  black bars that are part of the file.
+- **Display Mode:** Letterbox, 14:9 or Zoom for wide video, kept for each show or movie.
+  14:9 and Zoom also cut black bars that are part of the file. 4:3 video always shows whole.
 - **Quality:** for this video only. With Automatic, Batoplex lowers the quality if a remote
   video keeps buffering.
 - **Sleep Timer:** 15 to 90 minutes, or the end of the episode, video or track. The Now
