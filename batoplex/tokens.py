@@ -9,7 +9,7 @@ CANVAS_W, CANVAS_H = 640, 480      # logical canvas, placed at x 0; column 640 i
 
 # Default safe area. The calibration screen replaces these (settings.json).
 SAFE = {"left": 40, "right": 40, "top": 36, "bottom": 36}
-SAFE_LIMITS = {"h": (16, 72), "v": (16, 72), "step": 4}
+SAFE_LIMITS = {"h": (8, 72), "v": (16, 72), "step": 4}
 
 
 # Palette roles. theme.apply() fills C in place; the end of this file fills
