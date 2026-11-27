@@ -29,7 +29,8 @@ class TcProvider:
         self.calls.append(("play_info", item.id, dict(opts)))
         mode = opts.get("mode") or self.auto_mode
         pi = PlayInfo(url="http://x/%s.mkv" % item.id, headers={"X-Plex-Token": "t"},
-                      start_s=20.0, duration_ms=600000, title=item.title, part_id=7)
+                      start_s=20.0, duration_ms=600000, title=item.title, part_id=7,
+                      src_aspect=16 / 9.0)
         pi.conn = self.conn
         if mode == "transcode":
             if self.refuse:
@@ -89,6 +90,18 @@ class TestTimeBase(TcBase):
         self.start()
         sess = self.c.s.plex_session
         self.assertEqual(p.calls[0][2]["session"], sess)
+
+
+class TestSourceAspect(TcBase):
+    def test_transcode_gets_the_source_shape(self):
+        self.make(provider=TcProvider(auto_mode="transcode"))
+        m = self.start()
+        self.assertEqual(m.props["video-aspect-override"], "1.777778")
+
+    def test_direct_play_uses_the_file_aspect(self):
+        self.make(provider=TcProvider(auto_mode="direct"))
+        m = self.start()
+        self.assertEqual(m.props["video-aspect-override"], "-1")
 
 
 class TestSeek(TcBase):

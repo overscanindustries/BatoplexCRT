@@ -62,6 +62,13 @@ def crop_from_meta(meta, w, h):
     cut_x = min(left, right) if abs(left - right) <= tol_x else 0
     cut_y = cut_y if 2 * cut_y >= 0.03 * h else 0
     cut_x = cut_x if 2 * cut_x >= 0.03 * w else 0
+    # One direction only: a dark scene can look like bars at the sides of a wide film.
+    # Keep the larger bars (as a part of the frame); the other side stays whole.
+    if cut_y and cut_x:
+        if cut_y / float(h) >= cut_x / float(w):
+            cut_x = 0
+        else:
+            cut_y = 0
     cut_y, cut_x = cut_y - cut_y % 2, cut_x - cut_x % 2
     if not cut_y and not cut_x:
         return None
@@ -69,6 +76,23 @@ def crop_from_meta(meta, w, h):
     if cw * ch < 0.5 * w * h:
         return None
     return cw, ch, cut_x, cut_y
+
+
+def to_frac(c, w, h):
+    """(x, y) bar sizes as parts of a w x h frame, for a crop (cw, ch, x, y)."""
+    return (c[2] / float(w), c[3] / float(h)) if c and w and h else None
+
+
+def from_frac(f, w, h):
+    """The crop for a w x h frame from to_frac bars (a new stream size of the same film),
+    or None when there are no bars."""
+    if not f or not w or not h:
+        return None
+    x, y = int(round(f[0] * w)), int(round(f[1] * h))
+    x, y = x - x % 2, y - y % 2
+    if not x and not y:
+        return None
+    return w - 2 * x, h - 2 * y, x, y
 
 
 def blank(meta):

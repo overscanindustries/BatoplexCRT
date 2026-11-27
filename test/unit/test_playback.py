@@ -1484,7 +1484,7 @@ class TestAspect(Base):
         m.prop("video-params", {"w": 1920, "h": 1080, "aspect": 16 / 9})
         self.c.tick()
         self.to_row("aspect")
-        self.c.action(inputs.OK)
+        self.c.action(inputs.RIGHT)
         self.assertIsNotNone(self.c.pmenu)               # stays open
         self.assertIn(("aspect", "Aspect: 14:9"), self.c.pmenu["rows"])
         self.assertAlmostEqual(m.props["panscan"], 0.4286, places=3)
@@ -1515,6 +1515,85 @@ class TestAspect(Base):
         self.assertEqual(m.props["video-crop"], "640x360+0+60")
         self.assertEqual(m.props["panscan"], 1.0)        # the 16:9 picture fills the tube
         self.assertIsNone(self.c.cropjob)
+
+    def test_a_opens_the_aspect_list(self):
+        m = self.go()
+        m.prop("video-params", {"w": 1920, "h": 1080, "aspect": 16 / 9})
+        self.c.tick()
+        self.to_row("aspect")
+        self.c.action(inputs.OK)
+        self.assertEqual(self.c.pmenu["title"], "Aspect")
+        self.assertEqual(self.c.pmenu["checked"], 0)       # Letterbox
+        self.c.action(inputs.BACK)                         # back, on the Aspect row
+        self.assertIsNone(self.c.pmenu.get("title"))
+        self.assertEqual(self.c.pmenu["rows"][self.c.pmenu["focus"]][0], "aspect")
+        self.c.action(inputs.OK)
+        self.c.action(inputs.DOWN)
+        self.c.action(inputs.DOWN)
+        self.c.action(inputs.OK)
+        self.assertIsNone(self.c.pmenu)
+        self.assertEqual(self.c.aspect, "zoom")
+        self.assertEqual(m.props["panscan"], 1.0)
+
+    def detect(self, m):
+        m.props["vf-metadata/bpxcrop"] = {"lavfi.cropdetect.x1": "0", "lavfi.cropdetect.x2": "639",
+                                          "lavfi.cropdetect.y1": "60", "lavfi.cropdetect.y2": "419"}
+        m.prop("time-pos", 21.0)
+        self.c.tick()
+        self.clock.t += 2.5
+        self.c.tick()
+        self.c.tick()
+        self.clock.t += 3.5
+        self.c.tick()
+        self.c.tick()
+
+    def test_bars_are_kept_for_the_file(self):
+        m = self.go(saved="zoom")
+        self.detect(m)
+        self.assertEqual(m.props["video-crop"], "640x360+0+60")
+        adds = m.cmds.count(["vf", "add", playback.aspect.DETECT_FILTER])
+        self.c.set_aspect("letterbox")
+        self.assertEqual(m.props["video-crop"], "")
+        self.assertEqual(m.props["panscan"], 0.0)
+        self.c.set_aspect("zoom")                          # at once: no new look
+        self.assertEqual(m.props["video-crop"], "640x360+0+60")
+        self.assertEqual(m.props["panscan"], 1.0)
+        self.assertIsNone(self.c.cropjob)
+        # A quality change: the same file at a new size keeps the same bars.
+        self.c._aspect_reset(self.c.s, m)
+        self.assertEqual(m.props["video-crop"], "")
+        m.prop("video-params", {"w": 320, "h": 240, "aspect": 4 / 3})
+        self.c.tick()
+        self.assertEqual(m.props["video-crop"], "320x180+0+30")
+        self.assertIsNone(self.c.cropjob)
+        self.assertEqual(m.cmds.count(["vf", "add", playback.aspect.DETECT_FILTER]), adds)
+
+    def test_a_change_in_play_looks_without_the_start_wait(self):
+        m = self.go()
+        m.prop("time-pos", 21.0)
+        self.c.tick()
+        self.c.set_aspect("zoom")                          # in the first seconds: wait
+        self.c.tick()
+        self.assertNotIn(["vf", "add", playback.aspect.DETECT_FILTER], m.cmds)
+        self.c.set_aspect("letterbox")
+        self.clock.t += 30
+        self.c.set_aspect("zoom")                          # later: at once
+        self.c.tick()
+        self.assertIn(["vf", "add", playback.aspect.DETECT_FILTER], m.cmds)
+
+    def test_empty_metadata_is_not_kept_as_no_bars(self):
+        m = self.go(saved="zoom")
+        m.props["vf-metadata/bpxcrop"] = {}
+        m.prop("time-pos", 21.0)
+        self.c.tick()
+        self.clock.t += 2.5
+        self.c.tick()
+        self.c.tick()
+        self.clock.t += 3.5
+        self.c.tick()
+        self.c.tick()
+        self.assertIsNone(self.c.bars)
+        self.assertEqual(self.c.cropjob["state"], "wait")
 
     def test_dark_scene_tries_again_and_filter_error_stops(self):
         m = self.go(saved="14:9")

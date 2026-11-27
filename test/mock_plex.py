@@ -886,6 +886,11 @@ class H(BaseHTTPRequestHandler):
             log("tc_decision", offset=int(q.get("offset", 0)), session=bool(sess),
                 target=bool(self.headers.get("X-Plex-Client-Profile-Extra")),
                 quality=q.get("maxVideoBitrate"))
+            if not (q.get("X-Plex-Client-Profile-Name")
+                    or self.headers.get("X-Plex-Client-Profile-Name")):
+                # A real server with no profile for the platform: "unable to find a
+                # matching profile", HTTP 400.
+                return self.send_error(400)
             if os.environ.get("MOCK_NO_TRANSCODE"):
                 return self.send_json({"MediaContainer": {"generalDecisionCode": 1001,
                                                           "transcodeDecisionCode": 2000,

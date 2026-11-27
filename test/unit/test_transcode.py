@@ -173,6 +173,29 @@ class TestMeasure(Base):
             plex._opener = real
 
 
+class TestSourceAspect(unittest.TestCase):
+    @staticmethod
+    def media(w, h, par=None, ar=None):
+        v = {"streamType": 1, "width": w, "height": h}
+        if par:
+            v["pixelAspectRatio"] = par
+        m = {"Part": [{"Stream": [{"streamType": 2}, v]}]}
+        if ar is not None:
+            m["aspectRatio"] = ar
+        return m
+
+    def test_shapes_of_real_files(self):
+        self.assertAlmostEqual(plex.source_aspect(self.media(720, 480, "8:9")), 4 / 3.0, 3)
+        self.assertAlmostEqual(plex.source_aspect(self.media(720, 480, "853:720")), 16 / 9.0, 2)
+        self.assertAlmostEqual(plex.source_aspect(self.media(720, 576, "16:15")), 4 / 3.0, 3)
+        self.assertAlmostEqual(plex.source_aspect(self.media(1920, 1080)), 16 / 9.0, 3)
+
+    def test_fallbacks(self):
+        self.assertEqual(plex.source_aspect({"aspectRatio": 1.85, "Part": [{}]}), 1.85)
+        self.assertEqual(plex.source_aspect(self.media(720, 480, "x:y", ar=1.33)), 1.33)
+        self.assertEqual(plex.source_aspect(None), 0.0)
+
+
 class TestRequest(Base):
     def test_exact_query_and_url(self):
         pi = self.play(mode="transcode", session="SESS")
@@ -187,7 +210,7 @@ class TestRequest(Base):
             "addDebugOverlay": "0", "session": "SESS", "X-Plex-Session-Identifier": "SESS",
             "X-Plex-Client-Identifier": "cid", "X-Plex-Product": "Batoplex",
             "X-Plex-Version": config.VERSION, "X-Plex-Platform": "Linux",
-            "X-Plex-Device": "Batocera"})
+            "X-Plex-Device": "Batocera", "X-Plex-Client-Profile-Name": "Generic"})
         self.assertEqual(h["X-Plex-Client-Profile-Extra"], plex.PROFILE_EXTRA)
         self.assertEqual(pi.offset_s, 61.0)
         u = urllib.parse.urlparse(pi.url)
