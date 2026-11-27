@@ -26,13 +26,19 @@ def valid(mode):
 
 
 def panscan(mode, aspect, screen=SCREEN):
-    """mpv panscan (0 letterbox, 1 fill the height) for a picture of display aspect `aspect`
-    in a video area of aspect `screen`. mpv grows the picture linearly between the two sizes."""
+    """mpv panscan (0 whole picture, 1 fill the area) for a picture of display aspect
+    `aspect` in a video area of aspect `screen`. mpv grows the picture linearly between the
+    two sizes. Zoom also fills an area wider than the picture (a 4:3 show in wide margins);
+    14:9 is for wide pictures only."""
     mode = valid(mode)
-    if mode == "letterbox" or not aspect or aspect <= screen * NARROW_TOL:
+    if mode == "letterbox" or not aspect or not screen:
         return 0.0
+    if 1 / NARROW_TOL <= aspect / screen <= NARROW_TOL:
+        return 0.0                           # the area's own shape
     if mode == "zoom":
         return 1.0
+    if aspect < screen:
+        return 0.0
     h0 = screen / aspect                     # letterbox height, as a part of the area height
     target = screen / (14 / 9)               # the height that shows a 14:9 part of the picture
     if target <= h0:
@@ -63,6 +69,10 @@ def crop_from_meta(meta, w, h, dar=0.0):
     cut_x = min(left, right) if abs(left - right) <= tol_x else 0
     cut_y = cut_y if 2 * cut_y >= 0.03 * h else 0
     cut_x = cut_x if 2 * cut_x >= 0.03 * w else 0
+    # Thin lines at the top and bottom of a 4:3 capture are not bars: cutting them makes
+    # the picture narrower than a wide film.
+    if cut_y and dar and dar * h / float(h - 2 * (cut_y - cut_y % 2)) < WIDE_MIN:
+        cut_y = 0
     # One direction only: a dark scene can look like bars at the sides of a wide film.
     # Keep the larger bars (as a part of the frame); the other side stays whole.
     if cut_y and cut_x:
@@ -71,8 +81,6 @@ def crop_from_meta(meta, w, h, dar=0.0):
         else:
             cut_y = 0
     cut_y, cut_x = cut_y - cut_y % 2, cut_x - cut_x % 2
-    if cut_y and dar and dar * h / float(h - 2 * cut_y) < WIDE_MIN:
-        cut_y = 0
     if not cut_y and not cut_x:
         return None
     cw, ch = w - 2 * cut_x, h - 2 * cut_y

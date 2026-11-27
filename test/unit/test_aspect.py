@@ -30,6 +30,9 @@ class TestAspect(unittest.TestCase):
                 self.assertEqual(aspect.panscan(mode, a), 0.0, (mode, a))
         self.assertEqual(aspect.panscan("zoom", 1.43), 1.0)
         self.assertEqual(aspect.panscan("zoom", 4 / 3, screen=1.2), 1.0)   # a narrow area
+        self.assertEqual(aspect.panscan("zoom", 4 / 3, screen=1.48), 1.0)  # a wide area
+        self.assertEqual(aspect.panscan("14:9", 4 / 3, screen=1.48), 0.0)
+        self.assertEqual(aspect.panscan("zoom", 1.43, screen=1.48), 0.0)   # near its shape
 
     def test_thin_top_and_bottom_lines_are_not_bars(self):
         self.assertIsNone(aspect.crop_from_meta(meta(0, 719, 12, 467), 720, 480, 4 / 3))
@@ -40,6 +43,11 @@ class TestAspect(unittest.TestCase):
 
     def test_crop_letterboxed_4x3(self):
         self.assertEqual(aspect.crop_from_meta(meta(0, 639, 60, 419), 640, 480), (640, 360, 0, 60))
+
+    def test_crop_windowbox_keeps_side_bars(self):
+        # 30 px side bars and 24 px top and bottom: the thin top cut is dropped, the sides stay.
+        self.assertEqual(aspect.crop_from_meta(meta(30, 689, 24, 455), 720, 480, 4 / 3),
+                         (660, 480, 30, 0))
 
     def test_crop_needs_even_bars(self):
         self.assertIsNone(aspect.crop_from_meta(meta(0, 639, 0, 419), 640, 480))   # bottom only

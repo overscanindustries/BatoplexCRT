@@ -69,12 +69,12 @@ class TestRedirects(unittest.TestCase):
 class TestMenuFits(unittest.TestCase):
     def test_menu_inside_safe_area_at_wide_margins(self):
         from batoplex.screens.menu import MenuScreen
-        safe = {"left": 72, "right": 72, "top": 56, "bottom": 56}
+        safe = {"left": 72, "right": 72, "top": 72, "bottom": 72}
         app = type("A", (), {"settings": {"safe": safe}})()
         m = MenuScreen(app, None, "T", [("Row %d" % i, None) for i in range(9)])
         x, y, w, h = m.rect()
-        self.assertGreaterEqual(y, 56)
-        self.assertLessEqual(y + h, 480 - 56)
+        self.assertGreaterEqual(y, 72)
+        self.assertLessEqual(y + h, 480 - 72)
 
 
 if __name__ == "__main__":

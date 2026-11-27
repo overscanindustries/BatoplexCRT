@@ -470,6 +470,7 @@ class CalibrateScreen(Screen):
 
     def reset(self):
         self.app.settings["safe"] = dict(tokens.SAFE)
+        self.app.settings["video_margins"] = False
 
     def handle(self, a):
         safe = self.app.settings["safe"]
@@ -490,10 +491,13 @@ class CalibrateScreen(Screen):
                       "bottom": inputs.UP}[e]
             outward = {"left": inputs.LEFT, "right": inputs.RIGHT, "top": inputs.UP,
                        "bottom": inputs.DOWN}[e]
+            old = safe[e]
             if a == inward:
                 safe[e] = min(hi, safe[e] + step)
             elif a == outward:
                 safe[e] = max(lo, safe[e] - step)
+            if safe[e] != old:
+                self.app.settings["video_margins"] = True   # a measurement of this set
 
     def update(self):
         return False                  # it changes only on input

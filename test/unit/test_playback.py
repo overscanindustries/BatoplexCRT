@@ -1613,6 +1613,46 @@ class TestAspect(Base):
         self.assertIsNone(self.c.cropjob)                    # mpv refused the filter
 
 
+class TestVideoMargins(UpNextBase):
+    SAFE = {"left": 16, "right": 36, "top": 28, "bottom": 56}
+
+    def go_with(self, on):
+        self.make(provider=EpProvider())
+        self.c.settings = StrictSettings(dict(SETTINGS, safe=self.SAFE, video_margins=on))
+        self.item = self.p.eps["s1"][0]
+        m = self.start()
+        self.c.tick()
+        return m
+
+    def test_off_fills_the_screen(self):
+        m = self.go_with(False)
+        self.assertEqual(set(self.margins(m).values()), {0})
+
+    def test_on_puts_the_video_inside_the_margins_and_up_next_restores_them(self):
+        m = self.go_with(True)
+        want = {"video-margin-ratio-left": round(16 / 641.0, 4),
+                "video-margin-ratio-right": round(37 / 641.0, 4),
+                "video-margin-ratio-top": round(28 / 480.0, 4),
+                "video-margin-ratio-bottom": round(56 / 480.0, 4)}
+        self.assertEqual(self.margins(m), want)
+        m.prop("time-pos", 59.0)
+        m.prop("eof-reached", True)
+        self.c.tick()
+        self.assertGreater(self.margins(m)["video-margin-ratio-right"], 0.3)   # small box
+        self.clock.t += 15
+        self.c.tick()                                     # the next episode
+        self.assertEqual(self.margins(m), want)
+
+    def test_zoom_fills_an_area_wider_than_4x3(self):
+        m = self.go_with(True)
+        self.c.set_aspect("zoom")
+        m.prop("video-params", {"w": 1440, "h": 1080, "aspect": 4 / 3})
+        self.c.tick()
+        self.assertEqual(m.props["panscan"], 1.0)          # 588x396 is 1.48:1
+        self.c.set_aspect("letterbox")
+        self.assertEqual(m.props["panscan"], 0.0)
+
+
 class TestSleepTimer(UpNextBase):
     def setUp(self):
         from batoplex.sleep import SleepTimer

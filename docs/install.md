@@ -31,7 +31,7 @@ You need SSH access to the Batocera PC (user `root`; the password is in
 5. Go to [plex.tv/link](https://plex.tv/link) on a phone or computer and enter the code shown
    on screen.
 6. Press Menu, choose **Settings** > **TV Setup** > **Screen Margins**, and move each edge until it
-   just shows on your TV.
+   just shows on your TV. Video, menus and subtitles then stay inside the edges.
 
 To start Batoplex when the system starts, open the game menu on **Ports > Batoplex** and
 choose **Launch this game at startup**. Exit returns you to EmulationStation.
