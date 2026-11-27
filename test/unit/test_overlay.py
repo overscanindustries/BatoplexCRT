@@ -104,7 +104,7 @@ def components(safe):
     b = overlay.panel_rect(len(rows), safe)
     out.append(("panel", b, lambda s, b=b: overlay.draw_panel(s, pm, ox=b[0], oy=b[1])))
     labels = ["Subtitles: " + LONG, "Audio: Japanese • 5.1", "Quality: Original",
-              "Aspect: Original", "Sleep Timer: End of Episode", "Play from Start",
+              "Display Mode: Letterbox", "Sleep Timer: End of Episode", "Play from Start",
               "Next Episode", "Previous Episode", "Stop"]
     fit = overlay.menu_fit(safe)
     b = overlay.menu_rect(len(labels), safe)

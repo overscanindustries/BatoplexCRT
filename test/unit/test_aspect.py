@@ -24,10 +24,19 @@ class TestAspect(unittest.TestCase):
         self.assertEqual(aspect.panscan("bogus", 16 / 9), 0.0)
         self.assertEqual(aspect.panscan("zoom", 0), 0.0)               # no video params yet
 
-    def test_next_mode_wraps(self):
-        self.assertEqual(aspect.next_mode("letterbox"), "14:9")
-        self.assertEqual(aspect.next_mode("zoom"), "letterbox")
-        self.assertEqual(aspect.next_mode("letterbox", -1), "zoom")
+    def test_4x3_shapes_are_not_wide(self):
+        for a in (4 / 3, 720 * 10 / 11 / 480.0, 1.37, 1.40):    # 4:3, SD 10:11, Academy
+            for mode in ("14:9", "zoom"):
+                self.assertEqual(aspect.panscan(mode, a), 0.0, (mode, a))
+        self.assertEqual(aspect.panscan("zoom", 1.43), 1.0)
+        self.assertEqual(aspect.panscan("zoom", 4 / 3, screen=1.2), 1.0)   # a narrow area
+
+    def test_thin_top_and_bottom_lines_are_not_bars(self):
+        self.assertIsNone(aspect.crop_from_meta(meta(0, 719, 12, 467), 720, 480, 4 / 3))
+        self.assertEqual(aspect.crop_from_meta(meta(0, 719, 60, 419), 720, 480, 4 / 3),
+                         (720, 360, 0, 60))                       # a 16:9 film in 4:3
+        self.assertEqual(aspect.crop_from_meta(meta(81, 558, 0, 479), 640, 480, 4 / 3),
+                         (480, 480, 80, 0))                       # side bars: no rule
 
     def test_crop_letterboxed_4x3(self):
         self.assertEqual(aspect.crop_from_meta(meta(0, 639, 60, 419), 640, 480), (640, 360, 0, 60))

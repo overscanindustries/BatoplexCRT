@@ -1119,7 +1119,7 @@ class PlaybackController:
         m.set("panscan", ps)
 
     def set_aspect(self, mode):
-        """The Playback menu: a new Aspect for this show or movie, at once."""
+        """The Playback menu: a new Display Mode for this show or movie, at once."""
         s = self.s
         if s is None:
             return
@@ -1172,7 +1172,8 @@ class PlaybackController:
                     return
                 self._crop_filter_off(s.mpv)
                 c = aspect.crop_from_meta(meta if err == "success" else None,
-                                          int(vp.get("w") or 0), int(vp.get("h") or 0))
+                                          int(vp.get("w") or 0), int(vp.get("h") or 0),
+                                          float(vp.get("aspect") or 0))
                 job["tries"] += 1
                 no_box = (err != "success" or not isinstance(meta, dict) or aspect.blank(meta)
                           or "lavfi.cropdetect.x1" not in meta)
@@ -1476,7 +1477,7 @@ class PlaybackController:
             rows += [("subs", "Subtitles"), ("audio", "Audio")]
         if s.pi is not None and hasattr(s.provider, "transcode_choice") and not _no_state(s):
             rows.append(("quality", "Quality: %s" % (s.pi.quality or "Original")))
-        rows.append(("aspect", "Aspect: %s" % aspect.LABEL[self.aspect]))
+        rows.append(("aspect", "Display Mode: %s" % aspect.LABEL[self.aspect]))
         if self.sleep is not None:
             rows.append(("sleep", "Sleep Timer: %s" % self.sleep.label(self._end_name(s))))
         if s.channel is None:
@@ -1519,9 +1520,10 @@ class PlaybackController:
                       "title": "Quality"}
 
     def _open_aspect(self):
-        """Aspect: Letterbox, 14:9 and Zoom, the current one checked."""
+        """Display Mode: Letterbox, 14:9 and Zoom, the current one checked."""
         i = [k for k, _l in aspect.MODES].index(self.aspect)
-        self.pmenu = {"rows": list(aspect.MODES), "focus": i, "checked": i, "title": "Aspect"}
+        self.pmenu = {"rows": list(aspect.MODES), "focus": i, "checked": i,
+                      "title": "Display Mode"}
 
     def _back_to_pmenu(self, s, key):
         self._open_pmenu(s)
@@ -1576,21 +1578,20 @@ class PlaybackController:
             if not rep:
                 self._quality_action(s, a)
             return
-        if p.get("title") == "Aspect":
+        if p.get("title") == "Display Mode":
             if not rep:
                 self._aspect_list_action(s, a)
             return
         key = p["rows"][p["focus"]][0]
-        if key == "aspect" and a == inputs.OK and not rep:
-            self._open_aspect()
-            return
-        if key in ("aspect", "sleep") and a in (inputs.OK, inputs.LEFT, inputs.RIGHT) and not rep:
-            # Left and right change Aspect and Sleep Timer in place: the menu stays open.
-            d = -1 if a == inputs.LEFT else 1
-            if key == "aspect":
-                self.set_aspect(aspect.next_mode(self.aspect, d))
-            else:
-                self.sleep.step(d)
+        if key == "aspect":
+            # Only A opens the list: a stray Left or Right must not change a saved mode.
+            if a == inputs.OK and not rep:
+                self._open_aspect()
+            if a in (inputs.OK, inputs.LEFT, inputs.RIGHT):
+                return
+        if key == "sleep" and a in (inputs.OK, inputs.LEFT, inputs.RIGHT) and not rep:
+            # Left and right change the Sleep Timer in place: the menu stays open.
+            self.sleep.step(-1 if a == inputs.LEFT else 1)
             p["rows"] = self._pmenu_rows(s)
             return
         if rep:

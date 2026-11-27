@@ -1478,22 +1478,19 @@ class TestAspect(Base):
         while self.c.pmenu["rows"][self.c.pmenu["focus"]][0] != key:
             self.c.action(inputs.DOWN)
 
-    def test_menu_changes_aspect_in_place_and_remembers_it(self):
+    def test_left_and_right_do_not_change_the_mode(self):
         m = self.go()
-        self.assertEqual(m.props["panscan"], 0.0)
         m.prop("video-params", {"w": 1920, "h": 1080, "aspect": 16 / 9})
         self.c.tick()
         self.to_row("aspect")
         self.c.action(inputs.RIGHT)
-        self.assertIsNotNone(self.c.pmenu)               # stays open
-        self.assertIn(("aspect", "Aspect: 14:9"), self.c.pmenu["rows"])
-        self.assertAlmostEqual(m.props["panscan"], 0.4286, places=3)
-        self.c.action(inputs.RIGHT)
-        self.assertEqual(m.props["panscan"], 1.0)
-        self.assertEqual(self.mem.get(tracks.Memory.key(None, None, "item:1"))["aspect"], "zoom")
         self.c.action(inputs.LEFT)
-        self.c.action(inputs.LEFT)
+        self.assertIsNotNone(self.c.pmenu)
+        self.assertIsNone(self.c.pmenu.get("title"))     # still the Playback menu
+        self.assertIn(("aspect", "Display Mode: Letterbox"), self.c.pmenu["rows"])
+        self.assertEqual(self.c.aspect, "letterbox")
         self.assertEqual(m.props["panscan"], 0.0)
+        self.assertEqual(self.mem.get(tracks.Memory.key(None, None, "item:1")), {})
         self.assertNotIn("vf", m.names())                # letterbox: no bar detection
 
     def test_zoom_cuts_bars_in_a_4x3_file(self):
@@ -1522,9 +1519,9 @@ class TestAspect(Base):
         self.c.tick()
         self.to_row("aspect")
         self.c.action(inputs.OK)
-        self.assertEqual(self.c.pmenu["title"], "Aspect")
+        self.assertEqual(self.c.pmenu["title"], "Display Mode")
         self.assertEqual(self.c.pmenu["checked"], 0)       # Letterbox
-        self.c.action(inputs.BACK)                         # back, on the Aspect row
+        self.c.action(inputs.BACK)                         # back, on the Display Mode row
         self.assertIsNone(self.c.pmenu.get("title"))
         self.assertEqual(self.c.pmenu["rows"][self.c.pmenu["focus"]][0], "aspect")
         self.c.action(inputs.OK)
