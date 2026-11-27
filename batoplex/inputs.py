@@ -1,12 +1,15 @@
 """Controller, keyboard and remote input -> actions, with D-pad repeat.
 
-Xbox One pad: SDL GameController API (standard layout). Other pads: raw joystick fallback.
+Pads: SDL GameController API (standard layout), with the pad maps of EmulationStation, so a
+pad that wakes after the start is mapped too. Other pads: raw joystick fallback.
 Keyboard: arrows, Enter, Escape/Backspace (USB air-mouse remotes send Escape for Back and
 Space for Options). The app keeps reading the pad while mpv plays, because
 SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1 is set before pygame starts.
 """
 import collections
+import os
 import time
+import xml.etree.ElementTree as ET
 
 import pygame
 
@@ -58,7 +61,83 @@ TEXT_KEYS[pygame.K_SPACE] = " "
 CHAR = "char:"              # action prefix: "char:a"
 TEXT_KEEP = set(DIRS) | {OK, BACK, BACKSPACE, LB, RB, "playpause", "stop", "next", "prev"}
 
-# Raw joystick fallback (xpad numbering)
+# EmulationStation pad maps: the user file first, then the system file. Batocera's SDL has no
+# built-in pad list, and the launcher passes maps only for the pads that are awake at the start.
+ES_INPUT = ("/userdata/system/configs/emulationstation/es_input.cfg",
+            "/usr/share/emulationstation/es_input.cfg")
+ES_TO_SDL = {"b": "a", "a": "b", "x": "y", "y": "x", "l2": "lefttrigger", "r2": "righttrigger",
+             "l3": "leftstick", "r3": "rightstick", "pageup": "leftshoulder",
+             "pagedown": "rightshoulder", "start": "start", "select": "back", "up": "dpup",
+             "down": "dpdown", "left": "dpleft", "right": "dpright", "joystick1up": "lefty",
+             "joystick1left": "leftx", "joystick2up": "righty", "joystick2left": "rightx",
+             "hotkey": "guide"}
+SDL_MAP_VAR = "SDL_GAMECONTROLLERCONFIG"
+
+
+def _sdl_part(name, i):
+    """One ES input as an SDL mapping part (the same rules as Batocera's configgen)."""
+    key, t, n, v = ES_TO_SDL.get(name), i.get("type"), i.get("id"), i.get("value") or "0"
+    if key is None or n is None:
+        return None
+    if t == "button":
+        return "%s:b%s" % (key, n)
+    if t == "hat":
+        return "%s:h%s.%s" % (key, n, v)
+    if t == "axis":
+        if "joystick" in name:
+            return "%s:a%s%s" % (key, n, "~" if int(v) > 0 else "")
+        if key.startswith("dp"):
+            return "%s:%sa%s" % (key, "-" if int(v) < 0 else "+", n)
+        if "trigger" in key:
+            return "%s:a%s%s" % (key, n, "~" if int(v) < 0 else "")
+        return "%s:a%s" % (key, n)
+    return None
+
+
+def es_mappings(paths=None):
+    """SDL mapping lines for every pad in the EmulationStation files, one for each GUID."""
+    lines, seen = [], set()
+    for p in ES_INPUT if paths is None else paths:
+        try:
+            root = ET.parse(p).getroot()
+        except (OSError, ET.ParseError):
+            continue
+        for c in root.iter("inputConfig"):
+            guid = c.get("deviceGUID")
+            if c.get("type") != "joystick" or not guid or guid in seen:
+                continue
+            try:
+                line = _es_line(c, guid)
+            except (TypeError, ValueError):          # a bad value: skip this pad, not the app
+                continue
+            seen.add(guid)
+            lines.append(line)
+    return lines
+
+
+def _es_line(c, guid):
+    """One pad as an SDL mapping line."""
+    parts = [guid, (c.get("deviceName") or "Pad").replace(",", "."), "platform:Linux"]
+    buttons, hotkey = set(), None
+    for i in c.iter("input"):
+        if i.get("name") == "hotkey":
+            hotkey = i
+            continue
+        part = _sdl_part(i.get("name"), i)
+        if part:
+            parts.append(part)
+            if i.get("type") == "button":
+                buttons.add(i.get("id"))
+    # A hotkey on a button that has a use already confuses SDL apps (configgen).
+    if hotkey is not None and hotkey.get("id") not in buttons:
+        part = _sdl_part("hotkey", hotkey)
+        if part:
+            parts.append(part)
+    return ",".join(parts) + ","
+
+
+# Raw joystick fallback (xpad numbering; Batocera's SDL numbers buttons differently, so a pad
+# without a map can read A as Back)
 JOY_BUTTONS = {0: OK, 1: BACK, 2: X, 3: Y, 4: LB, 5: RB, 6: "select", 7: MENU}
 JOY_TRIGGERS = {2: LT, 5: RT}   # xpad: rest -1, full +1
 
@@ -85,12 +164,25 @@ class Input:
         self.flushes = 0          # counts flush(): a pending OK from before one is dropped
         self.text = False         # set by the app each frame: the top screen takes text
         self.activity = False     # any button or key went down (the screensaver reads it)
-        if sdlc:
-            try:
-                sdlc.init()
-            except Exception as e:
-                L.info("controller init failed: %s", e)
-        pygame.joystick.init()
+        # SDL reads the maps when the pads open. The launcher's maps go last, so they win.
+        # The variable goes back after that: it is large, and mpv does not need it.
+        given = os.environ.get(SDL_MAP_VAR)
+        maps = es_mappings()
+        if maps:
+            os.environ[SDL_MAP_VAR] = "\n".join(maps + ([given] if given else []))
+            L.info("pad maps: %d from EmulationStation", len(maps))
+        try:
+            if sdlc:
+                try:
+                    sdlc.init()
+                except Exception as e:
+                    L.info("controller init failed: %s", e)
+            pygame.joystick.init()
+        finally:
+            if given is None:
+                os.environ.pop(SDL_MAP_VAR, None)
+            else:
+                os.environ[SDL_MAP_VAR] = given
         self.scan()
 
     def scan(self):

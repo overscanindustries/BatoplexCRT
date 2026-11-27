@@ -189,5 +189,84 @@ class TestText(unittest.TestCase):
         self.assertTrue(inp.take_activity())
 
 
+
+XBOX_CFG = """<?xml version="1.0"?>
+<inputList>
+  <inputConfig type="keyboard" deviceName="Keyboard" deviceGUID="-1">
+    <input name="a" type="key" id="13" value="1" />
+  </inputConfig>
+  <inputConfig type="joystick" deviceName="Microsoft X-Box One pad, wired"
+               deviceGUID="060000005e040000120b000009050000">
+    <input name="a" type="button" id="2" value="1" />
+    <input name="b" type="button" id="1" value="1" />
+    <input name="down" type="hat" id="0" value="4" />
+    <input name="hotkey" type="button" id="9" value="1" />
+    <input name="joystick1left" type="axis" id="0" value="-1" />
+    <input name="l2" type="axis" id="2" value="1" />
+    <input name="select" type="button" id="7" value="1" />
+    <input name="start" type="button" id="8" value="1" />
+  </inputConfig>
+</inputList>
+"""
+
+
+class TestPadMaps(unittest.TestCase):
+    def setUp(self):
+        import shutil
+        import tempfile
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+
+    def cfg(self, name, text):
+        p = os.path.join(self.dir, name)
+        with open(p, "w") as f:
+            f.write(text)
+        return p
+
+    def test_es_pad_becomes_an_sdl_map(self):
+        lines = inputs.es_mappings([self.cfg("es.cfg", XBOX_CFG)])
+        self.assertEqual(len(lines), 1)                       # the keyboard is not a pad
+        parts = lines[0].split(",")
+        self.assertEqual(parts[:3], ["060000005e040000120b000009050000",
+                                     "Microsoft X-Box One pad. wired", "platform:Linux"])
+        for p in ("a:b1", "b:b2", "dpdown:h0.4", "leftx:a0", "lefttrigger:a2", "back:b7",
+                  "start:b8", "guide:b9"):
+            self.assertIn(p, parts)
+
+    def test_user_file_wins_and_missing_files_are_skipped(self):
+        user = self.cfg("user.cfg", XBOX_CFG.replace('id="1" value="1" />', 'id="5" value="1" />'))
+        lines = inputs.es_mappings([os.path.join(self.dir, "none.cfg"), user,
+                                    self.cfg("sys.cfg", XBOX_CFG)])
+        self.assertEqual(len(lines), 1)
+        self.assertIn("a:b5", lines[0].split(","))
+
+    def test_maps_are_set_while_the_pads_open_and_then_removed(self):
+        from unittest import mock
+        seen = []
+        old = inputs.ES_INPUT
+        inputs.ES_INPUT = (self.cfg("es.cfg", XBOX_CFG),)
+        try:
+            with mock.patch.object(pygame.joystick, "init",
+                                   lambda: seen.append(os.environ.get(inputs.SDL_MAP_VAR))):
+                with mock.patch.dict(os.environ, {inputs.SDL_MAP_VAR: "LAUNCHER"}):
+                    inputs.Input(clock=Clock())
+                    self.assertEqual(os.environ[inputs.SDL_MAP_VAR], "LAUNCHER")
+                os.environ.pop(inputs.SDL_MAP_VAR, None)
+                inputs.Input(clock=Clock())
+                self.assertNotIn(inputs.SDL_MAP_VAR, os.environ)
+        finally:
+            inputs.ES_INPUT = old
+        first = seen[0].split("\n")
+        self.assertTrue(first[0].startswith("060000005e040000120b000009050000,"))
+        self.assertEqual(first[-1], "LAUNCHER")               # the launcher's maps win
+        self.assertEqual(len(seen[1].split("\n")), 1)
+
+    def test_a_bad_value_skips_only_that_pad(self):
+        bad = XBOX_CFG.replace('id="0" value="-1"', 'id="0" value="x"').replace(
+            "060000005e040000120b000009050000", "0300bad")
+        lines = inputs.es_mappings([self.cfg("bad.cfg", bad), self.cfg("es.cfg", XBOX_CFG)])
+        self.assertEqual([l.split(",")[0] for l in lines], ["060000005e040000120b000009050000"])
+
+
 if __name__ == "__main__":
     unittest.main()
