@@ -32,6 +32,8 @@ You need SSH access to the Batocera PC (user `root`; the password is in
    on screen.
 6. Press Menu, choose **Settings** > **TV Setup** > **Screen Margins**, and move each edge until it
    just shows on your TV. Video, menus and subtitles then stay inside the edges.
+   If the picture sits off-centre on every TV, centre it first with **CRT > Grid Tool** and
+   **Geometry** in EmulationStation (Batocera CRT Script).
 
 To start Batoplex when the system starts, open the game menu on **Ports > Batoplex** and
 choose **Launch this game at startup**. Exit returns you to EmulationStation.

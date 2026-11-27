@@ -77,7 +77,7 @@ class TestRenderer(unittest.TestCase):
         self.assertEqual(len(self.adds()), 1)
 
 
-SAFES = [{"left": 16, "right": 16, "top": 16, "bottom": 16},
+SAFES = [{"left": 8, "right": 8, "top": 16, "bottom": 16},
          {"left": 40, "right": 40, "top": 36, "bottom": 36},
          {"left": 72, "right": 72, "top": 56, "bottom": 56}]
 BAR = {"title": "A Very Long Show Title • S12 E104 • An Even Longer Episode Title Here",

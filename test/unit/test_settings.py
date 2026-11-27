@@ -233,11 +233,11 @@ class TestCalibrateVideo(unittest.TestCase):
         scr = system.CalibrateScreen(app)
         scr.handle(inputs.BACK)                           # open and leave: no measurement
         self.assertFalse(app.settings["video_margins"])
-        app.settings["safe"] = dict(app.settings["safe"], left=16)
+        app.settings["safe"] = dict(app.settings["safe"], left=8)
         scr.handle(inputs.LEFT)                           # at the limit: nothing moves
         self.assertFalse(app.settings["video_margins"])
         scr.handle(inputs.RIGHT)
-        self.assertEqual(app.settings["safe"]["left"], 20)
+        self.assertEqual(app.settings["safe"]["left"], 12)
         self.assertTrue(app.settings["video_margins"])
         scr.reset()
         self.assertFalse(app.settings["video_margins"])

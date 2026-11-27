@@ -17,7 +17,7 @@ from batoplex.screens import nowplaying as npm, album as am  # noqa: E402
 from test_now_playing import App as NPApp  # noqa: E402
 from test_album_screen import App as AlbumApp, tracks  # noqa: E402
 
-MARGINS = ({"left": 16, "right": 16, "top": 16, "bottom": 16},
+MARGINS = ({"left": 8, "right": 8, "top": 16, "bottom": 16},
            {"left": 72, "right": 72, "top": 72, "bottom": 72})
 
 

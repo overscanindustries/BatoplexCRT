@@ -58,7 +58,7 @@ def run(out_dir):
                          ("subs", "Audio & Subtitles"), ("stop", "Stop")],
              "focus_row": "seek", "focus_btn": 0, "pos_s": 754, "dur_s": 1460,
              "markers": [(90, 180)], "chapters": [300, 610, 980, 1250]}
-    for margins in ((40, 36), (16, 16), (72, 72)):
+    for margins in ((40, 36), (8, 16), (72, 72)):
         safe = {"left": margins[0], "right": margins[0], "top": margins[1], "bottom": margins[1]}
         sr = pygame.Rect(safe["left"], safe["top"], 640 - safe["left"] - safe["right"],
                          480 - safe["top"] - safe["bottom"])

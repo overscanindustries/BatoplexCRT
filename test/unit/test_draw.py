@@ -13,7 +13,7 @@ from batoplex import draw, theme, tokens  # noqa: E402
 from batoplex.overlay import Recorder  # noqa: E402
 from batoplex.tokens import C  # noqa: E402
 
-SAFES = [{"left": 16, "right": 16, "top": 16, "bottom": 16},
+SAFES = [{"left": 8, "right": 8, "top": 16, "bottom": 16},
          {"left": 40, "right": 40, "top": 36, "bottom": 36},
          {"left": 72, "right": 72, "top": 56, "bottom": 56}]
 
